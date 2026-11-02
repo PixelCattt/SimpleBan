@@ -29,7 +29,7 @@ public class JoinListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
-        manager.saveOfflinePlayer(player.getUniqueId(), player.getName());
+        plugin.rememberOfflinePlayer(player.getUniqueId(), player.getName());
 
         if (sendUpdateNotification && player.hasPermission("simpleban.admin")) {
             // Prefix

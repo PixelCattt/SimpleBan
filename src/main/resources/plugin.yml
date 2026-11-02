@@ -2,6 +2,7 @@ name: SimpleBan
 main: com.pixelcatt.simpleban.SimpleBan
 version: ${project.version}
 api-version: 1.21
+depend: [OfflinePlayerLib]
 commands:
   tempban:
     description: Temporarily bans a Player.

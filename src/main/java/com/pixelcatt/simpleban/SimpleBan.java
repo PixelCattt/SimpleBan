@@ -1,5 +1,7 @@
 package com.pixelcatt.simpleban;
 
+import com.pixelcatt.offlineplayerlib.CachedOfflinePlayer;
+import com.pixelcatt.offlineplayerlib.OfflinePlayerLib;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.json.JSONArray;
@@ -16,6 +18,9 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,11 +30,17 @@ public class SimpleBan extends JavaPlugin {
     private BanManager manager;
     private LoginListener loginListener;
     private JoinListener joinListener;
+    private OfflinePlayerLib offlinePlayerLib;
+    private final Map<UUID, String> offlinePlayerNames = new ConcurrentHashMap<>();
+    private volatile long offlinePlayerNamesLastRefresh;
 
 
     @Override
     public void onEnable() {
         getLogger().info("~ Created by PixelCatt ~");
+
+        offlinePlayerLib = (OfflinePlayerLib) getServer().getPluginManager().getPlugin("OfflinePlayerLib");
+        refreshOfflinePlayerNames();
 
         // Initialize Ban-Manager
         getLogger().info("Initializing Ban-Manager...");
@@ -62,6 +73,29 @@ public class SimpleBan extends JavaPlugin {
         getServer().getPluginManager().registerEvents(loginListener, this);
         joinListener = new JoinListener(this, manager);
         getServer().getPluginManager().registerEvents(joinListener, this);
+    }
+
+    public OfflinePlayerLib getOfflinePlayerLib() {
+        return offlinePlayerLib;
+    }
+
+    public void rememberOfflinePlayer(UUID uuid, String name) {
+        if (uuid != null && name != null) offlinePlayerNames.put(uuid, name);
+    }
+
+    public Map<UUID, String> getOfflinePlayerNames() {
+        return Map.copyOf(offlinePlayerNames);
+    }
+
+    public void refreshOfflinePlayerNames() {
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - offlinePlayerNamesLastRefresh < 5000) return;
+        offlinePlayerNamesLastRefresh = currentTime;
+        offlinePlayerLib.GetAllOfflinePlayers().thenAccept(players -> {
+            for (CachedOfflinePlayer player : players) {
+                rememberOfflinePlayer(player.getUniqueId(), player.getName());
+            }
+        });
     }
 
     private void loadConfig() {

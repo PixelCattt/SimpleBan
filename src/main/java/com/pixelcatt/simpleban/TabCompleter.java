@@ -19,10 +19,11 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
 
         if (sender instanceof Player) {
+            plugin.refreshOfflinePlayerNames();
             Player player = (Player) sender;
             UUID uuid = player.getUniqueId();
 
-            manager.saveOfflinePlayer(uuid, player.getName());
+            plugin.rememberOfflinePlayer(uuid, player.getName());
 
             String cmd = command.getName().toLowerCase();
 
@@ -57,11 +58,9 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
 
     private List<String> autocompleteUnBannedPlayers(String[] args) {
         if (args.length == 1) {
-            List<String> names = manager.getOfflinePlayerNameList().stream()
-                .filter(name -> {
-                    UUID uuid = manager.getOfflinePlayerUUID(name);
-                    return uuid != null && !manager.isBanned(uuid);
-                })
+            List<String> names = plugin.getOfflinePlayerNames().entrySet().stream()
+                .filter(entry -> !manager.isBanned(entry.getKey()))
+                .map(Map.Entry::getValue)
                 .collect(Collectors.toList());
             return filterStringsByPrefix(names, args[0]);
         } else {
@@ -71,11 +70,9 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
 
     private List<String> autocompleteBannedPlayers(String[] args) {
         if (args.length == 1) {
-            List<String> names = manager.getOfflinePlayerNameList().stream()
-                .filter(name -> {
-                    UUID uuid = manager.getOfflinePlayerUUID(name);
-                    return uuid != null && manager.isBanned(uuid);
-                })
+            List<String> names = plugin.getOfflinePlayerNames().entrySet().stream()
+                .filter(entry -> manager.isBanned(entry.getKey()))
+                .map(Map.Entry::getValue)
                 .collect(Collectors.toList());
             return filterStringsByPrefix(names, args[0]);
         } else {
